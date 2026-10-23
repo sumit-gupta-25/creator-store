@@ -19,4 +19,16 @@ public class OrderController {
     public Order createOrder(@RequestBody @Valid OrderRequest orderRequest) {
         return orderService.createOrder(orderRequest);
     }
+
+    //Get all orders
+    @GetMapping
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
+    }
+
+    // Get order by id
+    @GetMapping("/{orderId}")
+    public Order getOrderById(@PathVariable Long orderId) {
+        return orderService.getOrderById(orderId);
+    }
 }

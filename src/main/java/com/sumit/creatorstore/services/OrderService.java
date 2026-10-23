@@ -70,4 +70,15 @@ public class OrderService {
 
         return orderRepository.save(order);
     }
+
+    // Get all orders
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
+
+    // Get order by ID
+    public Order getOrderById(Long id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id " + id));
+    }
 }
