@@ -5,6 +5,8 @@ import com.sumit.creatorstore.dto.OrderRequest;
 import com.sumit.creatorstore.entities.Order;
 import com.sumit.creatorstore.entities.OrderItem;
 import com.sumit.creatorstore.entities.Product;
+import com.sumit.creatorstore.exceptions.InsufficientStockException;
+import com.sumit.creatorstore.exceptions.ResourceNotFoundException;
 import com.sumit.creatorstore.repositories.OrderRepository;
 import com.sumit.creatorstore.repositories.ProductRepository;
 import jakarta.transaction.Transactional;
@@ -35,21 +37,25 @@ public class OrderService {
         for (OrderItemRequest itemRequest : orderRequest.getItems()) {
             Product product = productRepository.findById(
                     itemRequest.getProductId()
-            ).orElseThrow(() -> new RuntimeException(
-                    "Product not found with id " + itemRequest.getProductId()
+            ).orElseThrow(() -> new ResourceNotFoundException(
+                    "Product not found with id "
+                            + itemRequest.getProductId()
             ));
 
-            // Check the product stock
-            if(product.getStockQuantity() < itemRequest.getQuantity()) {
-                throw new RuntimeException("Not enough stock for " + itemRequest.getProductId());
+            // Check product stock
+            if (product.getStockQuantity() < itemRequest.getQuantity()) {
+                throw new InsufficientStockException(
+                        "Insufficient stock for product ID "
+                                + itemRequest.getProductId()
+                );
             }
 
-            // Calculate total price
+            // Calculate item price using the current database price
             BigDecimal priceOfItem = product.getPrice()
                     .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
             totalPrice = totalPrice.add(priceOfItem);
 
-            // Update the product table with latest stock quantity
+            // Decrease available stock
             product.setStockQuantity(
                     product.getStockQuantity() - itemRequest.getQuantity()
             );
@@ -79,6 +85,8 @@ public class OrderService {
     // Get order by ID
     public Order getOrderById(Long id) {
         return orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Order not found with id " + id
+                ));
     }
 }

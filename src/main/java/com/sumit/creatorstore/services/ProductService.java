@@ -2,11 +2,9 @@ package com.sumit.creatorstore.services;
 
 import com.sumit.creatorstore.entities.Product;
 import com.sumit.creatorstore.repositories.ProductRepository;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.*;
-
+import com.sumit.creatorstore.exceptions.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -21,8 +19,7 @@ public class ProductService {
     }
 
     public Product updateProduct(Long id, Product product) {
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id " + id));
+        Product existingProduct = getProductById(id);
         existingProduct.setName(product.getName());
         existingProduct.setDescription(product.getDescription());
         existingProduct.setCategory(product.getCategory());
@@ -38,10 +35,12 @@ public class ProductService {
 
     public Product getProductById(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product not found with id " + id));
     }
 
     public void deleteProduct(Long id) {
-        productRepository.deleteById(id);
+        Product product = getProductById(id);
+        productRepository.delete(product);
     }
 }
