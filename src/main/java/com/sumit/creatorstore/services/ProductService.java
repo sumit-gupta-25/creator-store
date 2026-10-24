@@ -5,6 +5,8 @@ import com.sumit.creatorstore.entities.Product;
 import com.sumit.creatorstore.exceptions.ResourceNotFoundException;
 import com.sumit.creatorstore.repositories.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,11 +35,9 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> getProduct() {
-        return productRepository.findAll()
-                .stream()
-                .map(this::toProductResponse)
-                .toList();
+    public Page<ProductResponse> getProduct(Pageable pageable) {
+        return productRepository.findAll(pageable)
+                .map(this::toProductResponse);
     }
 
     @Transactional(readOnly = true)

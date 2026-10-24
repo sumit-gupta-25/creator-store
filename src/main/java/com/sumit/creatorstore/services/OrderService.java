@@ -11,6 +11,8 @@ import com.sumit.creatorstore.exceptions.InsufficientStockException;
 import com.sumit.creatorstore.exceptions.ResourceNotFoundException;
 import com.sumit.creatorstore.repositories.OrderRepository;
 import com.sumit.creatorstore.repositories.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,11 +83,9 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll()
-                .stream()
-                .map(this::toOrderResponse)
-                .toList();
+    public Page<OrderResponse> getAllOrders(Pageable pageable) {
+        return orderRepository.findAll(pageable)
+                .map(this::toOrderResponse);
     }
 
     @Transactional(readOnly = true)
