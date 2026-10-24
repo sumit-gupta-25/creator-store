@@ -1,7 +1,9 @@
 package com.sumit.creatorstore.services;
 
 import com.sumit.creatorstore.dto.OrderItemRequest;
+import com.sumit.creatorstore.dto.OrderItemResponse;
 import com.sumit.creatorstore.dto.OrderRequest;
+import com.sumit.creatorstore.dto.OrderResponse;
 import com.sumit.creatorstore.entities.Order;
 import com.sumit.creatorstore.entities.OrderItem;
 import com.sumit.creatorstore.entities.Product;
@@ -9,9 +11,9 @@ import com.sumit.creatorstore.exceptions.InsufficientStockException;
 import com.sumit.creatorstore.exceptions.ResourceNotFoundException;
 import com.sumit.creatorstore.repositories.OrderRepository;
 import com.sumit.creatorstore.repositories.ProductRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -20,11 +22,12 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
+
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
 
     @Transactional
-    public Order createOrder(OrderRequest orderRequest) {
+    public OrderResponse createOrder(OrderRequest orderRequest) {
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalPrice = BigDecimal.ZERO;
 
@@ -42,7 +45,6 @@ public class OrderService {
                             + itemRequest.getProductId()
             ));
 
-            // Check product stock
             if (product.getStockQuantity() < itemRequest.getQuantity()) {
                 throw new InsufficientStockException(
                         "Insufficient stock for product ID "
@@ -50,15 +52,14 @@ public class OrderService {
                 );
             }
 
-            // Calculate item price using the current database price
             BigDecimal priceOfItem = product.getPrice()
                     .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
             totalPrice = totalPrice.add(priceOfItem);
 
-            // Decrease available stock
             product.setStockQuantity(
                     product.getStockQuantity() - itemRequest.getQuantity()
             );
+
             productRepository.save(product);
 
             OrderItem orderItem = OrderItem.builder()
@@ -74,19 +75,52 @@ public class OrderService {
         order.setTotalPrice(totalPrice);
         order.setOrderItems(orderItems);
 
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        return toOrderResponse(savedOrder);
     }
 
-    // Get all orders
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll()
+                .stream()
+                .map(this::toOrderResponse)
+                .toList();
     }
 
-    // Get order by ID
-    public Order getOrderById(Long id) {
-        return orderRepository.findById(id)
+    @Transactional(readOnly = true)
+    public OrderResponse getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Order not found with id " + id
                 ));
+
+        return toOrderResponse(order);
+    }
+
+    private OrderResponse toOrderResponse(Order order) {
+        List<OrderItemResponse> items = order.getOrderItems()
+                .stream()
+                .map(item -> new OrderItemResponse(
+                        item.getId(),
+                        item.getProduct().getId(),
+                        item.getProduct().getName(),
+                        item.getQuantity(),
+                        item.getPriceAtPurchase(),
+                        item.getPriceAtPurchase().multiply(
+                                BigDecimal.valueOf(item.getQuantity())
+                        )
+                ))
+                .toList();
+
+        return new OrderResponse(
+                order.getId(),
+                order.getCustomerName(),
+                order.getCustomerEmail(),
+                order.getStatus(),
+                order.getTotalPrice(),
+                items,
+                order.getCreatedAt()
+        );
     }
 }
