@@ -6,7 +6,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import org.springframework.dao.DataIntegrityViolationException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -93,5 +93,48 @@ public class GlobalExceptionHandler {
                 .body(createErrorBody(
                         status,
                         "Request body is missing or contains invalid JSON or data types"));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(
+            IllegalArgumentException ex) {
+
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+
+        return ResponseEntity.status(status)
+                .body(createErrorBody(status, ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCredentials(
+            InvalidCredentialsException ex) {
+
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+
+        return ResponseEntity.status(status)
+                .body(createErrorBody(status, ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateEmail(
+            DuplicateEmailException ex) {
+
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        return ResponseEntity.status(status)
+                .body(createErrorBody(status, ex.getMessage()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex) {
+
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        return ResponseEntity.status(status)
+                .body(createErrorBody(
+                        status,
+                        "The request conflicts with existing database data."
+                ));
     }
 }
